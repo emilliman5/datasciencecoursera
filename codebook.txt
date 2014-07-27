@@ -1,0 +1,10 @@
+##CodeBook
+
+Subj: ID number for the subject participant.
+   
+Activity: Variable that denotes the physical activity undertaken by the subject     
+
+Measurement: Categorical variable describing the measurement taken, either accelerometer or gyroscopic
+	measurements in the XYZ axis. This is either the mean of said measurements or the standard deviation      
+
+Mean: mean of each subjects measurement variables for a given activity
