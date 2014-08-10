@@ -1,15 +1,19 @@
 #Exploratory Data Analysis Course Project 2 plot2
 library(ggplot2)
+library(reshape)
 #read in the data
 
 NEI <- readRDS("summarySCC_PM25.rds")
 SCC <- readRDS("Source_Classification_Code.rds")
 
 #calcuate total emissions by year
-totals<-tapply(NEI[NEI$fips=="24510",4],
+totals<-melt(tapply(NEI[NEI$fips=="24510",4],
                list(as.factor(NEI[NEI$fips=="24510",6]), 
-                    as.factor(NEI[NEI$fips=="24510",5])), sum)
+                    as.factor(NEI[NEI$fips=="24510",5])), sum))
 
+transform(totals, X2=factor(X2))
 png("plot3.png", width=600, height=600)
-plot(c(1999,2002,2005,2008),totals, type="h", main="PM2.5 Baltimore City", lwd=10, xlab="Year", ylab="Total Emissions")
+
+qplot(X1, value, data=totals, color=X2, geom="line",xlab = "Year", ylab="Total Emissions")
+
 dev.off()
