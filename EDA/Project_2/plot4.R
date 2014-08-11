@@ -5,11 +5,17 @@ library(ggplot2)
 NEI <- readRDS("summarySCC_PM25.rds")
 SCC <- readRDS("Source_Classification_Code.rds")
 
-#calcuate total emissions by year
-totals<-tapply(NEI[NEI$fips=="24510",4],
-               list(as.factor(NEI[NEI$fips=="24510",6]), 
-                    as.factor(NEI[NEI$fips=="24510",5])), sum)
+#search for Location IDs that are marked as Coal combusting sources
+#The EI sector variable is a controlled vocabulary variable with three entries for 
+#Combustion and Coal as fuel source.
 
-png("plot3.png", width=600, height=600)
-plot(c(1999,2002,2005,2008),totals, type="h", main="PM2.5 Baltimore City", lwd=10, xlab="Year", ylab="Total Emissions")
+Ids<-SCC[grep("[Cc]oal", SCC$EI.Sector),1]
+
+#calcuate total emissions by year for all entries in the Ids vector (Coal combustion)
+totals<-tapply(NEI[NEI$SCC %in% Ids,4],
+               list(as.factor(NEI[NEI$SCC %in% Ids,6])), sum)
+
+#make the desired plot to determine how emissions from coal combustion has changed.
+png("plot4.png", width=600, height=600)
+plot(c(1999,2002,2005,2008), totals, type="l", main="PM2.5 from coal combustion sources", lwd=2, xlab="Year", ylab="Total Emissions")
 dev.off()
