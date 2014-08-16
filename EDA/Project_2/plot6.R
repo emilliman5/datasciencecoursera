@@ -17,7 +17,12 @@ totals<-tapply(NEI[(NEI$fips=="24510" | NEI$fips=="06037")& NEI$SCC %in% Ids,4],
 
 #transform the data to tall and skinny for easy factoring
 emissions<-melt(totals)
+##rename fips codes to cities for easy plotting
+
+emissions[emissions$Var2 == "6037", 2]<-"Los Angeles"
+emissions[emissions$Var2 == "24510", 2]<-"Baltimore"
 
 png("plot6.png", width=800, height=800)
-qplot(X1, value, data=emissions, color= as.factor(X2), geom="line", main="Vehicle emissions: Baltimore vs. LA", aes(size=1), xlab="Year", ylab="Total Emissions")
+qplot(Var1, value, data=emissions, color= as.factor(Var2), geom="line", main="Vehicle emissions: Baltimore vs. LA", aes(size=1), 
+      xlab="Year", ylab="Total Emissions")
 dev.off()
