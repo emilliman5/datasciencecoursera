@@ -1,0 +1,103 @@
+---
+title: 'Reproducible Research: Peer Assessment 1'
+output:
+  html_document:
+    keep_md: yes
+---
+
+## Loading and preprocessing the data
+
+Unzip and read in assignment data. It is assumed that this script is in the same directory as the data. Briefly inspect the data.
+
+```{r}
+unzip("activity.zip")
+activity<-read.csv("activity.csv")
+
+head(activity)
+summary(activity)
+```
+
+## What is mean total number of steps taken per day?
+
+Mean total number of steps=sum of all steps taken divided by number of days recorded. 
+
+```{r}
+totals<-as.data.frame(tapply(activity$steps, activity$date, sum))
+colnames(totals)<-c("total")
+totals$total<-as.numeric(totals$total)
+
+hist(totals$total)
+```
+
+
+```{r}
+mean_Steps<-sum(activity$steps, na.rm=TRUE)/length(levels(activity$date))
+median_steps<-median(tapply(activity$steps, activity$date, sum, na.rm=TRUE), na.rm=TRUE)
+
+```
+
+The mean steps taken per day = **`r mean_Steps`** and the median steps taken = **`r median_steps`.**
+
+## What is the average daily activity pattern?
+
+Create a time series plot of the average activity per time interval across the recorded period. Essentially average the data grouping by the interval column...
+Commented lines overlay the the average +/- the standard deviation (blue lines) to assess the variation in activity for each interval across the recorded period
+
+```{r}
+
+interval_avg<-as.data.frame(tapply(activity$steps, activity$interval, mean, na.rm=TRUE))
+colnames(interval_avg)<-c("average")
+interval_avg$interval<-as.numeric(rownames(interval_avg))
+
+plot(x=interval_avg$interval, y=interval_avg$average, type="l",xlab="interval", ylab="Average Activity per interval")
+
+#lines(y=interval_avg$average-tapply(activity$steps, activity$interval, sd, na.rm=TRUE), x=interval_avg$interval, col="blue")
+
+#lines(y=interval_avg$average+tapply(activity$steps, activity$interval, sd, na.rm=TRUE), x=interval_avg$interval, col="blue")
+
+maxInterval<-interval_avg[interval_avg$average==max(interval_avg$average),2]
+```
+
+The time interval with the highest average activity is **`r maxInterval`**.
+
+## Imputing missing values
+
+Mean steps for each interval was used to impute missing values, encoded as NA. Using the ave f(x) we can calculate the average value for a subset of the data and assign it to the rows with missing values.
+
+```{r}
+
+imputed<-activity
+
+missingBefore<-sum(is.na(activity$steps))
+
+imputed[which(is.na(imputed$steps)),1]<-ave(imputed$steps, imputed$interval, FUN = function(x) mean(x, na.rm = TRUE))[c(which(is.na(imputed$steps)))]
+
+missingAfter<-sum(is.na(imputed$steps))
+
+hist(tapply(imputed$steps, as.factor(imputed$date), sum), main="Distribution of Total Steps Taken per Day with Imputed Values", xlab="Total steps taken in a day")
+
+meanImpute<-sum(imputed$steps, na.rm=TRUE)/length(levels(imputed$date))
+medianImpute<-median(tapply(imputed$steps, imputed$date, sum, na.rm=TRUE), na.rm=TRUE)
+```
+
+The number of missing values is **`r missingBefore`**. The mean number of steps taken per day after imutation = **`r meanImpute`**. The median number of steps taken per day after imputation = **`r medianImpute`**.
+
+Imputing the missing data increased both the mean and the median steps taken per day. 
+
+## Are there differences in activity patterns between weekdays and weekends?
+
+First, create a new factor variable "weekday" and "weekend". Then plot the average steps taken per interval for the weekdays and weekends, separately.
+
+```{r}
+
+library(ggplot2)
+
+imputed$Day<-weekdays(as.Date(imputed$date))
+imputed[(imputed$Day=="Sunday"|imputed$Day=="Saturday"), 4]<-c("Weekend")
+imputed[(imputed$Day !="Weekend"), 4]<-c("Weekday")
+
+imputedAgg<-aggregate(steps ~ interval + Day, data=imputed, mean)
+
+qplot(interval, steps, data=imputedAgg, facets=Day~., geom = c("line", "line"))
+
+```
