@@ -1,0 +1,71 @@
+---
+title: "The Effects of Weather Events in the US on health"
+author: "emilliman5"
+date: "September 21, 2014"
+output: html_document
+---
+#Synopsis
+
+
+#Data Processing
+
+Load library/packages.
+
+```{r}
+
+library(ggplot2)
+library(reshape2)
+library(R.utils)
+library(plyr)
+
+```
+
+Download, decompress and read in data. Remove unneeded columns to free up memory.
+```{r cache=TRUE}
+
+download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", destfile = "NOAA_storm.csv.bz2", method="curl")
+
+bunzip2(filename = "NOAA_storm.csv.bz2", overwrite = TRUE)
+
+NOAA<-read.csv("NOAA_storm.csv")
+
+head(NOAA)
+tail(NOAA)
+
+StormNOAA<-NOAA[,c(2,7,8,23,24,25,26,27,28)]
+rm(NOAA)
+head(StormNOAA)
+```
+
+Create a smaller dataset for scripting to save on computational time
+```{r}
+StormNOAA<-StormNOAA[sample(nrow(StormNOAA), 100000),]
+list(StormNOAA$EVTYPE)
+StormNOAA$EVTYPE<-droplevels(StormNOAA$EVTYPE)
+str(StormNOAA)
+```
+
+#Results
+
+Question 1: Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+The effect of weather events on population health can be assessed by injuries and fatalites for each event. I first tabulated the mean and total number of health incidents (injuries and fatalities) per event type. I then plotted the top 10% (either mean or total) of events to assess the most severe weather event to human health.
+
+```{r}
+
+health<-cbind(aggregate(x = StormNOAA[,4]+StormNOAA[,5], by = list(StormNOAA$EVTYPE), FUN = mean, data = StormNOAA), aggregate(StormNOAA[,4]+StormNOAA[,5] ~ StormNOAA$EVTYPE, FUN = sum,data = StormNOAA, na.rm=TRUE))[,c(1,2,4)]
+
+colnames(health)=c("EVTYPE","Average", "Total")
+
+subset(health, Average>quantile(health$Average, c(.95)) | Total>quantile(health$Total, c(.95)))
+
+topTenNOAA<-StormNOAA[StormNOAA$EVTYPE %in% health[health$Average>quantile(health$Average, c(.95))|health$Total>quantile(health$Total, c(.95)),1],]
+
+topTenNOAA$EVTYPE<-droplevels(topTenNOAA$EVTYPE)
+
+par(cex.lab=0.25)
+boxplot(topTenNOAA$INJURIES+topTenNOAA$FATALITIES~topTenNOAA$EVTYPE)
+```
+
+Question 2: Across the United States, which types of events have the greatest economic consequences?
+
