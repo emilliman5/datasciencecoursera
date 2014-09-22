@@ -1,11 +1,12 @@
 ---
-title: "The Effects of Weather Events in the US on health"
+title: "The Effects of Weather Events in the US on health and economics"
 author: "emilliman5"
 date: "September 21, 2014"
 output: html_document
 ---
 #Synopsis
 
+In this study we aimed to assess the health and economic impacts of weather events recorded from the 1950's until 2012. Health impact was measured by reported injuries and fatalities for each event. Economic impact was measured by estimated property (homes, vehicles, infrastructure, and buildings) and crop damage costs. To make the data more digestable tables and lots include the top 1% of weather events based on the average or total impact (deaths/injuries, damages). The weather events wih the largest health impacts appeared to be tornados which have caused the greatest number of deaths. In terms of monetary damages Hurricanes and Hurricane-like events cause the most damage on average, but flooding has caused the most damage in total.
 
 #Data Processing
 
@@ -21,7 +22,7 @@ library(plyr)
 ```
 
 Download, decompress and read in data. Remove unneeded columns to free up memory.
-```{r cache=TRUE}
+```{r, cache=TRUE}
 
 download.file(url = "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2", destfile = "NOAA_storm.csv.bz2", method="curl")
 
@@ -30,42 +31,97 @@ bunzip2(filename = "NOAA_storm.csv.bz2", overwrite = TRUE)
 NOAA<-read.csv("NOAA_storm.csv")
 
 head(NOAA)
-tail(NOAA)
 
 StormNOAA<-NOAA[,c(2,7,8,23,24,25,26,27,28)]
 rm(NOAA)
 head(StormNOAA)
 ```
 
-Create a smaller dataset for scripting to save on computational time
-```{r}
-StormNOAA<-StormNOAA[sample(nrow(StormNOAA), 100000),]
+Create a smaller dataset to save on computational time (this is to speed testing), set records to the number entries you want sampled from the original dataset (must be a positive real number)
+
+```{r, eval=FALSE}
+records<-100000
+StormNOAA<-StormNOAA[sample(nrow(StormNOAA), floor(abs(records)),]
 list(StormNOAA$EVTYPE)
 StormNOAA$EVTYPE<-droplevels(StormNOAA$EVTYPE)
 str(StormNOAA)
 ```
 
-#Results
+Process and aggregate the data for question 1. Here I am tabulating the Mean, total and maximum number of injuries and deaths for each weather event. In an ideal world I would attempt to collapse similar events (i.e."WINTER WEATHER/MIX", "WINTERY MIX", "Wintry mix", "Wintry Mix", "WINTRY MIX")
+```{r, cache=TRUE}
 
-Question 1: Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+health<-cbind(aggregate(x = StormNOAA[,4]+StormNOAA[,5], by = list(StormNOAA$EVTYPE), FUN = mean, data = StormNOAA), aggregate(StormNOAA[,4]+StormNOAA[,5] ~ StormNOAA$EVTYPE, FUN = sum,data = StormNOAA, na.rm=TRUE), aggregate(StormNOAA[,4]+StormNOAA[,5] ~ StormNOAA$EVTYPE, FUN = max ,data = StormNOAA), table(StormNOAA$EVTYPE))[,c(1,2,4,6,8)]
 
-The effect of weather events on population health can be assessed by injuries and fatalites for each event. I first tabulated the mean and total number of health incidents (injuries and fatalities) per event type. I then plotted the top 10% (either mean or total) of events to assess the most severe weather event to human health.
+colnames(health)=c("EVTYPE","Average", "Total", "Maximum", "No. of Events")
+
+```
+
+First, the damage estimates needed to be expanded out. PROPDMGEXP denotes 100, 1000, 1000000, 1000000000's, PROPDMG is the precise amount to 3 sig-dig. So an event like the one below:
 
 ```{r}
+StormNOAA[187584,]
+```
 
-health<-cbind(aggregate(x = StormNOAA[,4]+StormNOAA[,5], by = list(StormNOAA$EVTYPE), FUN = mean, data = StormNOAA), aggregate(StormNOAA[,4]+StormNOAA[,5] ~ StormNOAA$EVTYPE, FUN = sum,data = StormNOAA, na.rm=TRUE))[,c(1,2,4)]
+In this instance, $20,000,000 in damage. The same convention also holds for Crop damages CROP*. Some of the *DMGEXP fields have characters other than H,K,M,B. These entries will be ignored as I can not reliablely determine the meaning of these codes. One thought was that they too were the number of trailing zeros for the *DMG field, owever, these codes show up in entries with no reported damage.
 
-colnames(health)=c("EVTYPE","Average", "Total")
+```{r, cache=TRUE}
 
-subset(health, Average>quantile(health$Average, c(.95)) | Total>quantile(health$Total, c(.95)))
+StormNOAA[StormNOAA$PROPDMGEXP=="m"|StormNOAA$PROPDMGEXP=="M",6]<-StormNOAA[StormNOAA$PROPDMGEXP=="m"|StormNOAA$PROPDMGEXP=="M",6]*1000000
+StormNOAA[StormNOAA$PROPDMGEXP=="K",6]<-StormNOAA[StormNOAA$PROPDMGEXP=="K",6]*1000
+StormNOAA[StormNOAA$PROPDMGEXP=="B",6]<-StormNOAA[StormNOAA$PROPDMGEXP=="B",6]*1000000000
+StormNOAA[StormNOAA$PROPDMGEXP=="h"|StormNOAA$PROPDMGEXP=="H",6]<-StormNOAA[StormNOAA$PROPDMGEXP=="h"|StormNOAA$PROPDMGEXP=="H",6]*1000000
+StormNOAA[!(StormNOAA$PROPDMGEXP %in% c("k","K","h","H","B","m","M")),6 ]<-0
 
-topTenNOAA<-StormNOAA[StormNOAA$EVTYPE %in% health[health$Average>quantile(health$Average, c(.95))|health$Total>quantile(health$Total, c(.95)),1],]
+StormNOAA[StormNOAA$CROPDMGEXP=="m"|StormNOAA$CROPDMGEXP=="M",8]<-StormNOAA[StormNOAA$CROPDMGEXP=="m"|StormNOAA$CROPDMGEXP=="M",8]*1000000
+StormNOAA[StormNOAA$CROPDMGEXP=="K",8]<-StormNOAA[StormNOAA$CROPDMGEXP=="K",8]*1000
+StormNOAA[StormNOAA$CROPDMGEXP=="B",8]<-StormNOAA[StormNOAA$CROPDMGEXP=="B",8]*1000000000
+StormNOAA[!(StormNOAA$CROPDMGEXP %in% c("k","K","h","H","B","m","M")),8 ]<-0
+
+econ<-cbind(aggregate(x = StormNOAA[,6]+StormNOAA[,8], by = list(StormNOAA$EVTYPE), FUN = mean, data = StormNOAA), aggregate(StormNOAA[,6]+StormNOAA[,8] ~ StormNOAA$EVTYPE, FUN = sum,data = StormNOAA, na.rm=TRUE), aggregate(StormNOAA[,6]+StormNOAA[,8] ~ StormNOAA$EVTYPE, FUN = max, data = StormNOAA, na.rm=TRUE), aggregate(StormNOAA[,6]+StormNOAA[,8] ~ StormNOAA$EVTYPE, FUN = sd,data = StormNOAA, na.rm=TRUE), table(StormNOAA$EVTYPE))[,c(1,2,4,6,8,10)]
+
+colnames(econ)=c("EVTYPE","Average", "Total", "Max","SD", "No. of Events")
+
+```
+
+#Results
+
+###Question 1: Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+The effect of weather events on population health can be assessed by injuries and fatalites for each event. I first tabulated the mean and total number of health incidents (injuries and fatalities) per event type. I then created a boxplot the top 1% (either mean or total) of events to assess the most severe weather events to human health.
+
+```{r}
+subset(health, Average>quantile(health$Average, c(.99)) | Total>quantile(health$Total, c(.99)))
+```
+
+This table shows the mean, maxmimum, and total number of injuries/deaths for the top 1% of weather events. You can also see the how many of each weather event has occured during the recorded time period to assess the frequency of each weather event.
+
+```{r}
+topTenNOAA<-StormNOAA[StormNOAA$EVTYPE %in% health[health$Average>quantile(health$Average, c(.99))|health$Total>quantile(health$Total, c(.99)),1],]
 
 topTenNOAA$EVTYPE<-droplevels(topTenNOAA$EVTYPE)
 
-par(cex.lab=0.25)
-boxplot(topTenNOAA$INJURIES+topTenNOAA$FATALITIES~topTenNOAA$EVTYPE)
+par(mar=c(8,4,2.5,1.5))
+boxplot(topTenNOAA$INJURIES+topTenNOAA$FATALITIES~topTenNOAA$EVTYPE, las=2, yaxt="n", cex.axis=0.5, ylab="Number of Deaths and Injuries", pch=19, range=0)
+axis(2, cex.lab=1)
 ```
 
-Question 2: Across the United States, which types of events have the greatest economic consequences?
+The bloxplot is a graphical representation of the range in health effects for the top 1% of weather events. This shows that some events have widley varying effects on health outcomes while others do not. The data show that Tornados have caused the most injury/loss to life while Huricane/Typhons and wild fires have a higher average injury/fatality rate, though they are rarer.
 
+###Question 2: Across the United States, which types of events have the greatest economic consequences?
+
+```{r}
+subset(econ, Average>quantile(econ$Average, c(.99)) | Total>quantile(econ$Total, c(.99)))
+```
+
+The above table reports the average damage costs, maximum, and total damage costs incurred by each type of weather event. You can also see how many of each weather event has occured during the recorded time period.
+
+```{r}
+topTenEcon<-StormNOAA[StormNOAA$EVTYPE %in% econ[econ$Average>quantile(econ$Average, c(.99))|econ$Total>quantile(econ$Total, c(.99)),1],]
+
+topEcon<-subset(econ, Average>quantile(econ$Average, c(.99)) | Total>quantile(econ$Total, c(.99)))
+
+ggplot(topEcon, aes(x=topEcon$EVTYPE, y=topEcon$Average))+geom_bar(position=position_dodge(),stat="identity")+geom_errorbar(aes(ymin=0, ymax=Average+SD), width=0.2, position=position_dodge(0.9))+ylab("Cost (USD)") + xlab("Weather Events")+theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+The above chart depicts the average cost per weather event (top 1% in average cost or total cost) plus the standard deviation (there is no minus S.D. because there is no such thing as negative cost). From the chart and teh table you can see that Hurricanes/Severe storms cause the most monetary damage on average however Floods have down the most damage in total (see table).
