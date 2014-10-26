@@ -1,0 +1,41 @@
+---
+title: "Statistical_inference_Part1"
+author: "emilliman5"
+date: "October 25, 2014"
+output: pdf_document
+---
+
+##Q1: 
+1. Show where the distribution is centered at and compare it to the theoretical center of the distribution.
+2. Show how variable it is and compare it to the theoretical variance of the distribution.
+3. Show that the distribution is approximately normal.
+4. Evaluate the coverage of the confidence interval for 1/lambda: X¯±1.96*S/√n
+
+```{r}
+x<-replicate(10000, { rexp(40, 0.2)})
+xbar<-apply(x, 2, mean)
+xsd<-apply(x, 2, sd)
+
+norm<-replicate(10000, {mean(rnorm(40,1/0.2, 1/0.2))})
+
+plot(density(xbar))
+lines(density(norm), col="darkblue")
+abline(v=1/0.2, col="red", lty=1.5)
+lines(density(rnorm(40000, 5, 1)))
+```
+
+
+###Coverage of 95% CIs
+```{r}
+n<-40 
+pvals <- 0.95
+nosim <- 10000 
+coverage <- sapply(pvals, function(p) {
+     phats <- replicate(nosim, { mean(rexp(n, 0.2))})
+     ul <- 5 + (qnorm(0.95) *(5/sqrt(n)) )
+     xxbar<-mean(ul>=phats)
+})
+plot(coverage)
+```
+
+
