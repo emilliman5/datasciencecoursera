@@ -5,31 +5,78 @@ date: "October 25, 2014"
 output: pdf_document
 ---
 
-Load the ToothGrowth data and perform some basic exploratory data analyses 
-
-1. Provide a basic summary of the data.
-2. Use confidence intervals and hypothesis tests to compare tooth growth by supp and dose. (Use the techniques from class even if there's other approaches worth considering)
-3. State your conclusions and the assumptions needed for your conclusions. 
-
-
-
-```{r}
-
-library(reshape2)
-library(ggplot2)
-data(ToothGrowth)
-
-summary(ToothGrowth)
-head(ToothGrowth)
-
-qplot(dose, len, data=ToothGrowth, color=supp)
-
-```
-
-
-
 ```{r, echo=FALSE}
 
+library(reshape2)
+library(gplots)
+library(ggplot2)
+data(ToothGrowth)
+``` 
+##1. Provide a basic summary of the data.
+
+Table 1 displays the toothgrowth data's mean, sd, and quantiles. Figure 1 displays the toothgrowth data graphically seperated by dose and colored by supplement.
+
+```{r, fig.cap="Table1", echo=FALSE}
+table<-aggregate(ToothGrowth$len,by = list(ToothGrowth$dose, ToothGrowth$supp), mean)
+table<-cbind(table,aggregate(ToothGrowth$len,by = list(ToothGrowth$dose, ToothGrowth$supp), sd)[,3],aggregate(ToothGrowth$len,by = list(ToothGrowth$dose, ToothGrowth$supp), quantile)[,3] )
+
+colnames(table)<-c("Dose", "Supp", "Mean.Length","S.D", "0%","25%","50%","75%","100%")
+table
+```
+
+```{r, fig.height=4, fig.width=5, echo=FALSE}
+qplot(dose, len, data=ToothGrowth, color=supp, main = "Figure 1: Tooth Length vs. Supplement and Dose")
+```
+
+##2. Use confidence intervals and hypothesis tests to compare tooth growth by supp and dose. (Use the techniques from class even if there's other approaches worth considering)
+
+```{r, echo=FALSE, fig.height=4,fig.width=5}
+TGmean<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), FUN=mean))
+ul<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), function(x){ t.test(x)$conf[2]}))
+ll<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), function(x){ t.test(x)$conf[1]}))
+
+barplot2(TGmean$value, plot.ci=TRUE, ci.l=ll$value, ci.u=ul$value, names.arg = paste(TGmean$Var2, TGmean$Var1, sep=" "), main = "Figure 2: Average Length +/- 95%CI")
+```
+```{r, fig.cap="Table2"}
+pairwise.t.test(ToothGrowth$len, g = paste(ToothGrowth$supp,ToothGrowth$dose), paired = FALSE, p.adjust.method ="none")
+
+```
+Figure 2 displays the average toothgrowth length for each supplement and dose and its respective 95% CIs. Table 2 shows all pairwise pvalues between doses and supplements. From the table (and figure), we can see that there are some doses and supplements that in which there are more extreme observations made than is expected by chance (p-values <=0.5).
+
+##3. State your conclusions and the assumptions needed for your conclusions. 
+
+From the data above we can see that increasing the dose of regardless of the supplement seems to increase tooth length greater than is expected by chance. However, the data also suggests that the lower doeses of OJ are more effective than than the lower doses of VC but  high doses of VC and OJ are statistically indishtinguishable. One caveat to this analysis is a lack of mulitple hypothesis testing. The more pair-wise comapraisons that we make the greater the channce we will obtain a large t-statistic by chance (in fact w would expect this to occur for 1 in 20 comparisons)
+
+#Appendix: Code
+
+Load data:
+```{r, eval=FALSE}
+library(reshape2)
+library(gplots)
+library(ggplot2)
+data(ToothGrowth)
+``` 
+
+```{r, fig.cap="Table1", eval=FALSE}
+table<-aggregate(ToothGrowth$len,by = list(ToothGrowth$dose, ToothGrowth$supp), mean)
+table<-cbind(table,aggregate(ToothGrowth$len,by = list(ToothGrowth$dose, ToothGrowth$supp), sd)[,3],aggregate(ToothGrowth$len,by = list(ToothGrowth$dose, ToothGrowth$supp), quantile)[,3] )
+
+colnames(table)<-c("Dose", "Supp", "Mean.Length","S.D", "0%","25%","50%","75%","100%")
+table
+```
+
+```{r, fig.height=4, fig.width=5, eval=FALSE}
+qplot(dose, len, data=ToothGrowth, color=supp, main = "Figure 1: Tooth Length vs. Supplement and Dose")
+```
+
+```{r}
+TGmean<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), FUN=mean))
+ul<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), function(x){ t.test(x)$conf[2]}))
+ll<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), function(x){ t.test(x)$conf[1]}))
+
+barplot2(TGmean$value, plot.ci=TRUE, ci.l=ll$value, ci.u=ul$value, names.arg = paste(TGmean$Var2, TGmean$Var1, sep=" "), main = "Average Length +/- 95%CI")
+
+pairwise.t.test(ToothGrowth$len, g = paste(ToothGrowth$supp,ToothGrowth$dose), paired = FALSE, p.adjust.method ="none")
 
 ```
 
