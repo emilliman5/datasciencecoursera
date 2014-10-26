@@ -4,38 +4,63 @@ author: "emilliman5"
 date: "October 25, 2014"
 output: pdf_document
 ---
-
-##Q1: 
-1. Show where the distribution is centered at and compare it to the theoretical center of the distribution.
-2. Show how variable it is and compare it to the theoretical variance of the distribution.
-3. Show that the distribution is approximately normal.
-4. Evaluate the coverage of the confidence interval for 1/lambda: X¯±1.96*S/√n
-
-```{r}
-x<-replicate(10000, { rexp(40, 0.2)})
+```{r, echo=FALSE}
+n<-40
+x<-replicate(10000, { rexp(n, 0.2)})
 xbar<-apply(x, 2, mean)
 xsd<-apply(x, 2, sd)
-
 norm<-replicate(10000, {mean(rnorm(40,1/0.2, 1/0.2))})
-
-plot(density(xbar))
-lines(density(norm), col="darkblue")
-abline(v=1/0.2, col="red", lty=1.5)
-lines(density(rnorm(40000, 5, 1)))
+ul <- 5 + (qnorm(0.975) *(5/sqrt(n)))
+ll <- 5 - (qnorm(0.975) *(5/sqrt(n)) )
+coverage<-mean(ul>=xbar & ll<=xbar)
 ```
 
+##1. Show where the distribution is centered at and compare it to the theoretical center of the distribution.
+Figure 1 shows the distribution, from 10,000 simulations, of means from 40 random samplings of an Exponential distribution where lamda=0.2 (black line). The mean of this distribution is `r mean(xbar)` which is very close to the theoretical mean of the distribution which equals 1/lambda or 5 (figure 1, red and blue solid lines). 
 
-###Coverage of 95% CIs
+##2. Show how variable it is and compare it to the theoretical variance of the distribution.
+The s.d. deviation of an Exponential dist. is equal to 1/lambda. In this case that is 1/0.2=`r 1/0.2`. Figure 2 shows the distribution of s.d. deviations obtained from 10000 simulations of 40 random draws from the Exp Dist with lambda=0.2 (black line). The red line in figure 2 shows the theoretical s.d. We can see that the Rexp distibution is roughly centered at 1/lambda with a slight skew to the right. The average of the S.D.s from the simulation is very close to the theoretical S.D.: mean(xsd)=`r mean(xsd)`.
+
+##3. Show that the distribution is approximately normal
+To show that the distribution of our sample is roughly normal we can compare it to the a normal distirbution with mean=1/0.2 and S.D.=1 (figure 1 green line). I also overlayed the distibution of means (simulated 10,000 times) of 40 random samplings from a normal distribution with mu and s.d.= 1/lambda (figure 1, blue dotted line). You can see that the Rexp distribution (black line) is similar (though shifted slightly to the right) to the distribution of means from a normal distribution with the same parameters of the Exp Dist.(blue dotted line). However, when compared to the Normal distibution the the Exp we see that the curve is tighter and slightly skewed (with a right hand tail).
+
+##4. Evaluate the coverage of the confidence interval for 1/lambda: mean(X)±1.96*S/sqrt(n)
+
+To assess the coverage of the 95% confidence interval for the Exp distribution I counted the proportion of simulations in which the sample mean was between the upper and lower 95% CIs `r ul` and `r ll`, respectively. Based on this calculation `r coverage*100` % of the sampled means fell between the upper and lower CIs. This is what is excatly predicted by the 95% CIs.
+
+#Appendix: Code and Figures
+
+```{r, eval=FALSE}
+n<-40
+x<-replicate(10000, { rexp(n, 0.2)})
+xbar<-apply(x, 2, mean)
+xsd<-apply(x, 2, sd)
+norm<-replicate(10000, {mean(rnorm(40,1/0.2, 1/0.2))})
+```
+
 ```{r}
-n<-40 
-pvals <- 0.95
-nosim <- 10000 
-coverage <- sapply(pvals, function(p) {
-     phats <- replicate(nosim, { mean(rexp(n, 0.2))})
-     ul <- 5 + (qnorm(0.95) *(5/sqrt(n)) )
-     xxbar<-mean(ul>=phats)
-})
-plot(coverage)
+plot(density(xbar), lwd=2, main="Figure 1: Density Plots of Rexp(0.2) Distribution")
+abline(v=1/0.2, col="red", lwd=3.5)
+abline(v=mean(xbar), col="blue", lwd=1.5)
+legend(x="topright", c("Rexp density lambda=0.2", "Normal Density (5,1)", 
+  "Theoretical Average of Rexp(0.2)", "Acutal Average of Rexp(0.2)", "Density of Sampled Rnorm
+  (Mu=5, sd=5)"), lty=c(1,1,1,1,2), lwd=c(2,2,2,2,2), col=c("black", 
+  "green", "darkblue","red", "blue"), cex=0.65)
+lines(density(rnorm(400000, 5, 1)), lwd=2, col="green")
+lines(density(norm), lty=2, lwd=2, col="blue")
 ```
 
+```{r}
+plot(density(xsd), lwd=2, main="Figure 2: Density Plots of the S.D. of Rexp(0.2) Distribution")
+abline(v=1/0.2, col="red", lwd=2)
+legend(x="topright", c("Rexp density lambda=0.2", "Theoretical S.D. of Rexp (0.2)"), lty=c(1,1), lwd=c(2,2), col=c("black", "red"))
 
+```
+
+```{r}
+
+ul <- 5 + (qnorm(0.975) *(5/sqrt(n)))
+ll <- 5 - (qnorm(0.975) *(5/sqrt(n)) )
+coverage<-mean(ul>=xbar & ll<=xbar)
+
+```
