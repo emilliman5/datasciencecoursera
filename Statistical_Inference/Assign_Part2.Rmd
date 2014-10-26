@@ -69,7 +69,7 @@ table
 qplot(dose, len, data=ToothGrowth, color=supp, main = "Figure 1: Tooth Length vs. Supplement and Dose")
 ```
 
-```{r}
+```{r, eval=FALSE}
 TGmean<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), FUN=mean))
 ul<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), function(x){ t.test(x)$conf[2]}))
 ll<-melt(tapply(ToothGrowth$len,INDEX = list(ToothGrowth$dose, ToothGrowth$supp), function(x){ t.test(x)$conf[1]}))
