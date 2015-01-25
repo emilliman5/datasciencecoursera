@@ -2,50 +2,55 @@
 title: "Motor Trends Report"
 author: "emilliman4"
 date: "01/24/2015"
-output: pdf_document
+output: html_document
 ---
+##Summary
+According to the best model obtained a car with a manual transmission has better gas mileage (higher mpg) than an automatic car of the same weight or the unique . However for the increase in weight of a manual transmission car reduces that mpg gain as compared to an automatic transmission car (the is specified by the interaction term in the model). Without the interaction term the effect of transmission on mpg is lost and shows no significant coefficient.
+The change in mpg between a manual and automatic transmission car = 14.32- 4.66*wt. These coefficents all pass a p-value threshold of <= 0.01. To assess the quality of the model the covariance of the residuals and mpg was calculated and found to be very close to the same calculation with the model including all predictors (4.7 vs 4.3). A plot of the residuals and mpg shows a slight skew to my eye and may be the result of some highly influential points (these tended to be the small light cars with very high mpg) or another predictor that was not included in the table or more interactions.
 
+##Dataset exploration
+Weight is highly correlated with mpg (this is expected based on the physics of motion; figure 1). Many of the datasets variables are highly correlated, e.g., hp, disp, wt and number of cylinders (figure 3). Furthermore the style of a car's transmission is highly predictive of a cars weight (automatic transmission cars are signifcantly heavier than mannual transmission cars;p=6.272e-6; figure 2). Weight is one of the largest drivers fuel consumption and thus fuel efficiency (MPG). Therefore, car weight needs to be accounted for our model. A model was built for MPG using all available predictors. This led to a model with no significant coefficients and a relatively high covariance. A new model was built from the ground up starting with transmission type adding other predictors and testing for model improvement by ANOVA (only incrementally better models were retained). In the end the following model yielded the best results: mpg~am+wt+vs+am*wt. Inclusion of engine block style (straight or V) also improved model performance if only marginally thus it was included.
 
-```{r}
+##Appendix and Supporting Material
+```{r, echo=FALSE,warning=FALSE}
 library(gplots)
 data(mtcars)
-summary(mtcars)
-pairs(mtcars)
-heatmap.2(cor(mtcars),)
+t.test(wt~am, mtcars)
 ```
 
-
+```{r}
+#summary(mtcars)
+par(mfcol=c(1,2))
+plot(y=mtcars$mpg, x=mtcars$wt, col=factor(mtcars$am), pch=19, main="Figure 1: MPG vs. Car Weight")
+legend("topright", legend=c("Automatic", "Manual"), col=1:2, pch=19)
+boxplot(mtcars$wt~mtcars$am, main="Figure 3: Car Weight by Transmission Type", ylab="Weight (tons)", xlab="Transmission Type")
+legend("topright", legend=c("0: Automatic", "1: Manual"))
+heatmap.2(cor(mtcars), trace="none", main="Figure 3: Correlation of mtCars variables")
+```
 
 ```{r, echo=FALSE}
-fit<-lm(mpg~., mtcars)
-summary(fit)
-influence.measures(fit)
+fit<-lm(mpg~wt+factor(cyl)+factor(am)+factor(vs)+carb+drat+disp+hp+qsec+gear, mtcars)
+```
+###Model fit with all available variables
+```{r}
+summary(fit)$coeff
+#plot(mtcars$mpg, fit$residuals)
+#cov(mtcars$mpg, fit$residuals)
 ```
 
-
+###Model selection
 ```{r}
 fit1<-lm(mpg~factor(am), data=mtcars)
 summary(fit1)$coeff
 fit2<-lm(mpg~factor(am)+wt, data=mtcars)
 summary(fit2)$coeff
-fit3<-lm(mpg~factor(am)+wt+factor(am)*wt, data=mtcars)
+fit3<-lm(mpg~factor(am)+wt+factor(vs), data=mtcars)
 summary(fit3)$coeff
-fit4<-lm(mpg~factor(am)+factor(vs)+wt+factor(am)*wt, mtcars)
-summary(fit4)
-fit5<-lm(mpg~factor(am)+factor(vs)+wt+drat+factor(am)*wt, mtcars)
-summary(fit5)
+fit4<-lm(mpg~factor(am)+wt+factor(vs)+factor(am)*wt, mtcars)
+summary(fit4)$coeff
+anova(fit,fit1,fit2,fit3,fit4)
+plot(mtcars$mpg, fit4$residuals)
 
-anova(fit1,fit2,fit3,fit4,fit5)
+```{r, echo=FALSE, eval=FALSE}
+cov(mtcars$mpg, fit4$residuals)
 ```
-
-Did the student interpret the coefficients correctly?
-
-Did the student do some exploratory data analyses?
-
-Did the student fit multiple models and detail their strategy for model selection?
-
-Did the student answer the questions of interest or detail why the question(s) is (are) not answerable?
-
-Did the student do a residual plot and some diagnostics?
-
-Did the student quantify the uncertainty in their conclusions and/or perform an inference correctly?
