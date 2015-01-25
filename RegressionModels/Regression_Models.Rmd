@@ -5,9 +5,6 @@ date: "01/24/2015"
 output: pdf_document
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
 
 ```{r}
 data(mtcars)
@@ -18,7 +15,30 @@ pairs(mtcars)
 You can also embed plots, for example:
 
 ```{r, echo=FALSE}
-plot(cars)
+summary(lm(mpg~., data=mtcars))
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+summary(lm(mpg~., data=mtcars))
+fit1<-lm(mpg~factor(am), data=mtcars)
+summary(fit1)$coeff
+fit2<-lm(mpg~factor(am)+wt, data=mtcars)
+summary(fit2)$coeff
+fit3<-lm(mpg~factor(am)+wt+factor(am)*wt, data=mtcars)
+summary(fit3)$coeff
+
+anova(fit1,fit2,fit3)
+```
+
+Did the student interpret the coefficients correctly?
+
+Did the student do some exploratory data analyses?
+
+Did the student fit multiple models and detail their strategy for model selection?
+
+Did the student answer the questions of interest or detail why the question(s) is (are) not answerable?
+
+Did the student do a residual plot and some diagnostics?
+
+Did the student quantify the uncertainty in their conclusions and/or perform an inference correctly?
