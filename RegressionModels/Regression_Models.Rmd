@@ -7,28 +7,35 @@ output: pdf_document
 
 
 ```{r}
+library(gplots)
 data(mtcars)
 summary(mtcars)
 pairs(mtcars)
+heatmap.2(cor(mtcars),)
 ```
 
-You can also embed plots, for example:
+
 
 ```{r, echo=FALSE}
-summary(lm(mpg~., data=mtcars))
+fit<-lm(mpg~., mtcars)
+summary(fit)
+influence.measures(fit)
 ```
 
 
 ```{r}
-summary(lm(mpg~., data=mtcars))
 fit1<-lm(mpg~factor(am), data=mtcars)
 summary(fit1)$coeff
 fit2<-lm(mpg~factor(am)+wt, data=mtcars)
 summary(fit2)$coeff
 fit3<-lm(mpg~factor(am)+wt+factor(am)*wt, data=mtcars)
 summary(fit3)$coeff
+fit4<-lm(mpg~factor(am)+factor(vs)+wt+factor(am)*wt, mtcars)
+summary(fit4)
+fit5<-lm(mpg~factor(am)+factor(vs)+wt+drat+factor(am)*wt, mtcars)
+summary(fit5)
 
-anova(fit1,fit2,fit3)
+anova(fit1,fit2,fit3,fit4,fit5)
 ```
 
 Did the student interpret the coefficients correctly?
