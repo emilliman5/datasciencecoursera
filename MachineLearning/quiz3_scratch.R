@@ -1,3 +1,23 @@
+library(AppliedPredictiveModeling)
+library(caret)
+data(segmentationOriginal)
+df<-segmentationOriginal
+summary(df)
+inTrain<-createDataPartition(df$Case,p = 0.7, list=FALSE)
+training<-df[df$Case=="Train",]
+set.seed(125)
+modFit<-train(Class~., data=training, method="rpart")
+fancyRpartPlot(modFit$finalModel)
+summary(modFit)
+
+
+library(pgmm)
+data(olive)
+olive<-olive[,-1]
+modfit1<-train(Area~.,data=olive, method="rpart")
+newdata = as.data.frame(t(colMeans(olive)))
+predict(modfit1,newdata=newdata)
+
 library(ElemStatLearn)
 data(SAheart)
 set.seed(8484)
