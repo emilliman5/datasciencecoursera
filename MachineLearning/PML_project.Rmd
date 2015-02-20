@@ -1,0 +1,132 @@
+---
+title: "Machine_Learning"
+author: "emilliman4"
+date: "02/17/2015"
+output: html_document
+---
+
+
+
+```{r, echo=FALSE}
+library(ggplot2)
+library(caret)
+library(rattle)
+library(gridExtra)
+library(randomForest)
+library(foreach)
+
+
+download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",destfile = "pml-training.csv",method="curl")
+
+pml.training<-read.csv("pml-training.csv", stringsAsFactors=FALSE)
+
+pml.training$user_name<-as.factor(pml.training$user_name)
+pml.training$classe<-as.factor(pml.training$classe)
+pml.training$new_window<-as.factor(pml.training$new_window)
+pml.training<-pml.training[,c(-1,-3,-4,-5,-6,-7,-14,-17,-26,-89,-92,-101,-127,-130,-139)]
+pml.training<-subset(pml.training,select = apply(pml.training,2, function(x) sum(is.na(x))) < 100)
+pml.training<-subset(pml.training,select=apply(pml.training,2, function(x) !is.element("#DIV/0!",x))==TRUE)
+```
+Look at basic structure of the data. Notice that there are number of columns with very little/no data. Let's remove them. The test data is single time point so all summary data is also removed (this data is summarized in the rows with new_window=="yes"). As far as I can tell the rows with new_window=="yes" contain empirical data as well as summary data for the entire window so the row is kept and the columns are removed. these columns have large numbers of NAs or empty cells/#DIV/0!...
+
+
+```{r}
+head(pml.training)
+summary(pml.training)
+inTrain<-createDataPartition(pml.training$classe,p=0.6,list=FALSE)
+
+training<-pml.training[inTrain,]
+testing<-pml.training[-inTrain,]
+```
+
+Exploratory Data Analysis
+
+Too many columns for a matrix of plots. Instead make a heatmap of correlation coefficients between all numeric variables.
+
+PCA to attempt dimension reduction.
+
+```{r}
+nsv<-by(training[,c(-1,-54)],training$user_name,function(x) nearZeroVar(x, saveMetrics=T))
+heatmap.2(cor(training[,c(-1,-54)]), col=redblue(75),trace="none", main="Figure 2: Correlation of sensor data", margins=c(7,7), cexRow=0.75, cexCol=0.8)
+
+PCA<-prcomp(training[,c(-1,-54)],center = TRUE, scale=TRUE)
+
+scores<-as.data.frame(PCA$x)
+scores$group<-training$classe
+p1<-ggplot(data = scores, aes(x = PC1, y = PC2,colour=training$user_name, label = rownames(scores))) +
+  geom_hline(yintercept = 0, colour = "gray65") +
+  geom_vline(xintercept = 0, colour = "gray65") +
+  geom_text(alpha = 0.8, size = 4) +
+  ggtitle("PCA plot of TimePoints - Sensor Data")
+
+corcir<-circle(c(0,0), npoints=100)
+
+correlations<-as.data.frame(cor(training[,c(-1,-54)],PCA$x))
+arrows = data.frame(x1 = rep(0,dim(correlations)[1]), y1 = rep(0,dim(correlations)[1]), x2 = correlations$PC1, y2 = correlations$PC2)
+
+p2<-ggplot() + geom_path(data = corcir, aes(x = x, y = y), colour = "gray65") + 
+    geom_segment(data = arrows, aes(x = x1, y = y1, xend = x2, yend = y2), colour = "gray65") + 
+    geom_text(data = correlations, aes(x = PC1, y = PC2, label = rownames(correlations))) + 
+    geom_hline(yintercept = 0, colour = "gray65") + geom_vline(xintercept = 0, 
+    colour = "gray65") + xlim(-1.1, 1.1) + ylim(-1.1, 1.1) + labs(x = "pc1 aixs", 
+    y = "pc2 axis") + ggtitle("Circle of correlations")
+
+
+grid.arrange(p1,p2, ncol=2)
+```
+
+```{r}
+treeFit<-train(training$classe~., method="rpart", data=training)
+fancyRpartPlot(treeFit$finalModel)
+table(training$classe,predict(treeFit, newdata=training))
+treePredict<-predict(treeFit, newdata=testing)
+table(testing$classe,treePredict)
+```
+
+```{r}
+rfFit<-randomForest(classe~., data=training[,-1])
+rfFit
+rfPredict<-predict(rfFit, newdata=testing)
+```
+
+```{r}
+boostFit<-train(classe~., method="gbm", data=training, verbose=F, preprocess=c("center","scale"))
+```
+
+Data Citations:
+  
+Ugulino, W.; Cardador, D.; Vega, K.; Velloso, E.; Milidiu, R.; Fuks, H. Wearable Computing: Accelerometers' Data Classification of Body Postures and Movements. Proceedings of 21st Brazilian Symposium on Artificial Intelligence. Advances in Artificial Intelligence - SBIA 2012. In: Lecture Notes in Computer Science. , pp. 52-61. Curitiba, PR: Springer Berlin / Heidelberg, 2012. ISBN 978-3-642-34458-9. DOI: 10.1007/978-3-642-34459-6_6.
+
+Velloso, E.; Bulling, A.; Gellersen, H.; Ugulino, W.; Fuks, H. Qualitative Activity Recognition of Weight Lifting Exercises. Proceedings of 4th International Conference in Cooperation with SIGCHI (Augmented Human '13) . Stuttgart, Germany: ACM SIGCHI, 2013.
+
+```{r}
+circle <- function(center = c(0, 0), npoints = 100) {
+    r = 1
+    tt = seq(0, 2 * pi, length = npoints)
+    xx = center[1] + r * cos(tt)
+    yy = center[1] + r * sin(tt)
+    return(data.frame(x = xx, y = yy))
+}
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+```
+
+```{r}
+#Predictions
+download.file(destfile = "testing_pml.csv", url="https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", method="curl")
+
+testset<-read.csv("testing_pml.csv", stringsAsFactors=F)
+testset$user_name<-as.factor(testset$user_name)
+testset<-testset[,c(-1,-3,-4,-5,-6,-7,-14,-17,-26,-89,-92,-101,-127,-130,-139)]
+testPredict<-predict(rfFit, newdata=testset)
+testPredict<-as.character(testPredict)
+
+```
+
+
