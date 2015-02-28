@@ -73,3 +73,27 @@ testing = concrete[-inTrain,]
 
 modlasso<-enet(as.matrix(training[,-9]),training$CompressiveStrength)
 plot.enet(modlasso, xvar="penalty")
+
+##Q4 
+
+library(lubridate)  # For year() function below
+dat = read.csv("~/Desktop/gaData.csv")
+training = dat[year(dat$date) < 2012,]
+testing = dat[(year(dat$date)) > 2011,]
+tstrain = ts(training$visitsTumblr)
+
+##Q5
+
+set.seed(325)
+library(e1071)
+library(AppliedPredictiveModeling)
+library(hydroGOF)
+data(concrete)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training = concrete[ inTrain,]
+testing = concrete[-inTrain,]
+
+modSVM<-svm(CompressiveStrength~., training)
+testSVM<-predict(modSVM,testing)
+testSVM
+rmse(testSVM,testing$CompressiveStrength)
