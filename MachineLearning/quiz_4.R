@@ -77,11 +77,20 @@ plot.enet(modlasso, xvar="penalty")
 ##Q4 
 
 library(lubridate)  # For year() function below
-dat = read.csv("~/Desktop/gaData.csv")
+library(forecast)
+dat = read.csv("~/Downloads/gaData.csv")
 training = dat[year(dat$date) < 2012,]
 testing = dat[(year(dat$date)) > 2011,]
 tstrain = ts(training$visitsTumblr)
+tstest<-ts(testing$visitsTumblr, start=366)
 
+q4mod<-bats(tstrain)
+predQ4<-forecast(q5mod,h=235, level=95)
+accuracy(predQ4,tstest)
+plot(predQ4)
+lines(tstest, col="red")
+
+length(subset(tstest,subset = tstest>=predQ4$lower & tstest<=predQ4$upper))/length(tstest)
 ##Q5
 
 set.seed(325)
